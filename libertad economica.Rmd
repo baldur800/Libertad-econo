@@ -1,0 +1,94 @@
+```{r}
+library(cluster)
+library(plyr)
+library(knitr)
+library(kableExtra)
+library(ggplot2)
+library(factoextra)
+library(ggrepel)
+```
+```{r}
+library(htmltab)
+library(stringr)
+library(magrittr)
+
+```
+
+```{r}
+library(tidyr)
+library(dplyr)
+```
+
+```{r}
+link="https://www.heritage.org/index/explore?version=1379"
+path='//*[@id="by-countries"]'
+libertadecon=htmltab(doc = link, 
+              which = path, 
+              encoding = "UTF-8")
+View(libertadecon)
+```
+
+```{r}
+names(libertadecon)
+libertadecon=libertadecon[,-c(2)] #sin el año
+names(libertadecon)
+```
+
+```{r}
+str(libertadecon)
+```
+
+```{r}
+#Convirtiendo a numerico varias columnas a la vez y omitiendo na
+libertadecon[,-c(1)]=lapply(libertadecon[,-c(1)], as.numeric)  # a numerico
+str(libertadecon)
+```
+```{r}
+libertadecon=na.omit(libertadecon)
+```
+```{r}
+names(libertadecon)
+names(libertadecon)[names(libertadecon)=="Name"]="Country" 
+```
+
+```{r}
+row.names(libertadecon)=libertadecon$`Country`
+```
+
+```{r}
+library(cluster)
+g.dist = daisy(libertadecon[,c(3:14)], metric="gower")
+```
+```{r}
+pam.resultado=pam(g.dist,4,cluster.only = F)
+```
+```{r}
+libertadecon$clusterPT=pam.resultado$cluster
+```
+```{r}
+aggregate(as.matrix(cbind(libertadecon[,c(3:14)]))~ clusterPT, data=libertadecon,
+          FUN=plyr::each(MD = median, Media = mean))
+```
+
+```{r}
+agg=aggregate(as.matrix(cbind(libertadecon[,c(3:14)]))~ clusterPT, 
+              data=libertadecon, 
+              FUN=plyr::each(MD = median, Media = mean))
+
+agg
+```
+
+```{r}
+tablaResumen=t(as.data.frame(agg))  
+tablaResumen
+tablaResumen=as.data.frame(tablaResumen)
+```
+```{r}
+kable(tablaResumen, format = "html", digits = 2)%>%
+  kable_styling()
+```
+```{r}
+fviz_cluster(object = list(data=g.dist, cluster = libertadecon$clusterPT),
+             geom = c("text"), 
+             ellipse.type = "convex")
+```
